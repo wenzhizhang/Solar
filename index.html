@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>简易太阳系模拟器</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        canvas { display: block; }
+    </style>
+    <!-- 引入 Three.js 和 OrbitControls -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // 1. 场景、相机与渲染器初始化
+        const scene = new THREE.Scene();
+        // 添加星空背景（简单的粒子效果）
+        const starGeometry = new THREE.BufferGeometry();
+        const starMaterial = new THREE.PointsMaterial({color: 0xffffff});
+        const starVertices = [];
+        for(let i=0; i<5000; i++) {
+            const x = (Math.random() - 0.5) * 2000;
+            const y = (Math.random() - 0.5) * 2000;
+            const z = (Math.random() - 0.5) * 2000;
+            starVertices.push(x, y, z);
+        }
+        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+        const stars = new THREE.Points(starGeometry, starMaterial);
+        scene.add(stars);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
+        camera.position.set(0, 150, 300); // 初始视角位置
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // 2. 交互控制 (鼠标拖拽旋转、滚轮缩放)
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; 
+
+        // 3. 光源设置 (太阳是发光体，放在中心)
+        const pointLight = new THREE.PointLight(0xffffff, 2, 1000);
+        scene.add(pointLight);
+        const ambientLight = new THREE.AmbientLight(0x333333); // 环境光，让背光面不完全死黑
+        scene.add(ambientLight);
+
+        // 4. 创建太阳
+        const sunGeometry = new THREE.SphereGeometry(16, 32, 32);
+        const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700 }); // 太阳自发光，不受光照影响
+        const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+        scene.add(sun);
+
+        // 5. 行星数据与创建函数
+        // 为了演示效果，大小和距离并未完全按照真实比例，而是做了视觉妥协
+        const planetsData = [
+            { name: "水星", size: 3.2, distance: 28, speed: 0.04, color: 0xA9A9A9 },
+            { name: "金星", size: 5.8, distance: 44, speed: 0.015, color: 0xFFC649 },
+            { name: "地球", size: 6, distance: 62, speed: 0.01, color: 0x2233FF },
+            { name: "火星", size: 4, distance: 78, speed: 0.008, color: 0xFF4500 },
+            { name: "木星", size: 12, distance: 110, speed: 0.002, color: 0xD2B48C },
+            { name: "土星", size: 10, distance: 148, speed: 0.0009, color: 0xF4A460, hasRing: true },
+            { name: "天王星", size: 7, distance: 186, speed: 0.0004, color: 0xADD8E6 },
+            { name: "海王星", size: 7, distance: 216, speed: 0.0001, color: 0x4169E1 }
+        ];
+
+        const planets = [];
+
+        function createPlanet(data) {
+            // 创建一个父容器对象，用于控制公转（把它放在太阳的位置）
+            const orbitContainer = new THREE.Object3D();
+            scene.add(orbitContainer);
+
+            // 创建行星实体
+            const geometry = new THREE.SphereGeometry(data.size, 32, 32);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: data.color,
+                roughness: 0.7,
+            });
+            const planet = new THREE.Mesh(geometry, material);
+            
+            // 将行星偏移到指定的轨道半径处
+            planet.position.x = data.distance;
+            orbitContainer.add(planet);
+
+            // 绘制轨道线（视觉辅助）
+            const trackGeometry = new THREE.RingGeometry(data.distance - 0.2, data.distance + 0.2, 64);
+            const trackMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, opacity: 0.1, transparent: true });
+            const track = new THREE.Mesh(trackGeometry, trackMaterial);
+            track.rotation.x = Math.PI / 2;
+            scene.add(track);
+
+            // 如果是土星，加个环
+            if (data.hasRing) {
+                const ringGeo = new THREE.RingGeometry(data.size * 1.4, data.size * 2.2, 32);
+                const ringMat = new THREE.MeshBasicMaterial({ color: 0xAA8866, side: THREE.DoubleSide, opacity: 0.6, transparent: true });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.x = Math.PI / 2;
+                planet.add(ring);
+            }
+
+            return { mesh: planet, container: orbitContainer, speed: data.speed };
+        }
+
+        // 批量生成行星
+        planetsData.forEach(data => {
+            planets.push(createPlanet(data));
+        });
+
+        // 6. 动画循环
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // 太阳自转
+            sun.rotation.y += 0.004;
+
+            // 行星公转与自转
+            planets.forEach(p => {
+                p.container.rotation.y += p.speed; // 绕太阳公转（旋转父容器）
+                p.mesh.rotation.y += 0.02;         // 行星自转
+            });
+
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // 窗口大小自适应
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>
