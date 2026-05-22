@@ -2,12 +2,15 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>简易太阳系模拟器</title>
+    <title>高清交互式太阳系模拟器</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Arial', sans-serif; }
         canvas { display: block; }
+        #loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: white; font-size: 24px; pointer-events: none; transition: opacity 0.5s;
+        }
     </style>
-    <!-- 引入 Three.js 和 OrbitControls -->
     <script type="importmap">
         {
             "imports": {
@@ -18,116 +21,227 @@
     </script>
 </head>
 <body>
+    <div id="loading">正在加载高清纹理资源...</div>
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // 1. 场景、相机与渲染器初始化
+        // --- 1. 场景初始化 ---
         const scene = new THREE.Scene();
-        // 添加星空背景（简单的粒子效果）
-        const starGeometry = new THREE.BufferGeometry();
-        const starMaterial = new THREE.PointsMaterial({color: 0xffffff});
-        const starVertices = [];
-        for(let i=0; i<5000; i++) {
-            const x = (Math.random() - 0.5) * 2000;
-            const y = (Math.random() - 0.5) * 2000;
-            const z = (Math.random() - 0.5) * 2000;
-            starVertices.push(x, y, z);
-        }
-        starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
-        const stars = new THREE.Points(starGeometry, starMaterial);
-        scene.add(stars);
-
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
-        camera.position.set(0, 150, 300); // 初始视角位置
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000);
+        camera.position.set(0, 150, 350); // 初始视角拉远一点
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio); // 适配高清屏
         document.body.appendChild(renderer.domElement);
 
-        // 2. 交互控制 (鼠标拖拽旋转、滚轮缩放)
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true; 
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
 
-        // 3. 光源设置 (太阳是发光体，放在中心)
-        const pointLight = new THREE.PointLight(0xffffff, 2, 1000);
-        scene.add(pointLight);
-        const ambientLight = new THREE.AmbientLight(0x333333); // 环境光，让背光面不完全死黑
+        // --- 2. 纹理加载器 ---
+        const textureLoader = new THREE.TextureLoader();
+        const texturePath = './textures/'; // 贴图文件夹路径
+
+        // 预加载星空背景
+        const starTexture = textureLoader.load(texturePath + '2k_stars_milky_way.jpg', () => {
+            document.getElementById('loading').style.opacity = 0; // 加载完成后隐藏提示
+        });
+        scene.background = starTexture;
+
+        // --- 3. 光源设置 ---
+        // 太阳是核心光源，放在中心
+        const sunLight = new THREE.PointLight(0xffffff, 5, 2000);
+        scene.add(sunLight);
+        // 微弱的环境光，保证行星背光面不至于完全死黑
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.5); 
         scene.add(ambientLight);
 
-        // 4. 创建太阳
-        const sunGeometry = new THREE.SphereGeometry(16, 32, 32);
-        const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700 }); // 太阳自发光，不受光照影响
-        const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+        // --- 4. 创建太阳 ---
+        const sunGeo = new THREE.SphereGeometry(16, 64, 64);
+        const sunTex = textureLoader.load(texturePath + '2k_sun.jpg');
+        const sunMat = new THREE.MeshBasicMaterial({ map: sunTex }); // 太阳自发光，不受光照影响
+        const sun = new THREE.Mesh(sunGeo, sunMat);
         scene.add(sun);
 
-        // 5. 行星数据与创建函数
-        // 为了演示效果，大小和距离并未完全按照真实比例，而是做了视觉妥协
+        // --- 给太阳添加完美的圆形发光光晕 ---
+        function createGlowTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128; 
+            canvas.height = 128;
+            const context = canvas.getContext('2d');
+            // 绘制径向渐变：中心白色 -> 中间金黄 -> 边缘完全透明
+            const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0.0, 'rgba(255, 255, 255, 1)');   // 核心最亮
+            gradient.addColorStop(0.2, 'rgba(255, 200, 50, 0.8)');  // 内层金黄
+            gradient.addColorStop(0.5, 'rgba(255, 100, 0, 0.2)');   // 外层橙色渐隐
+            gradient.addColorStop(1.0, 'rgba(0, 0, 0, 0)');         // 边缘完全透明
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 128, 128);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const glowMaterial = new THREE.SpriteMaterial({ 
+            map: createGlowTexture(),
+            color: 0xffaa00, 
+            transparent: true, 
+            opacity: 0.7, // 整体透明度，可根据画面明暗微调
+            blending: THREE.AdditiveBlending, // 叠加变亮模式，产生发光感
+            depthWrite: false // 防止光晕遮挡其他物体的深度计算
+        });
+
+        const glowSprite = new THREE.Sprite(glowMaterial);
+        glowSprite.scale.set(70, 70, 1.0); // 光晕大小，建议比太阳本体(半径16，直径32)大2-3倍
+        sun.add(glowSprite); // 绑定到太阳上，跟随太阳移动
+
+        // --- 5. 行星数据配置 ---
+        // 为了视觉效果，大小和距离做了非真实比例的妥协，但保留了相对大小关系
         const planetsData = [
-            { name: "水星", size: 3.2, distance: 28, speed: 0.04, color: 0xA9A9A9 },
-            { name: "金星", size: 5.8, distance: 44, speed: 0.015, color: 0xFFC649 },
-            { name: "地球", size: 6, distance: 62, speed: 0.01, color: 0x2233FF },
-            { name: "火星", size: 4, distance: 78, speed: 0.008, color: 0xFF4500 },
-            { name: "木星", size: 12, distance: 110, speed: 0.002, color: 0xD2B48C },
-            { name: "土星", size: 10, distance: 148, speed: 0.0009, color: 0xF4A460, hasRing: true },
-            { name: "天王星", size: 7, distance: 186, speed: 0.0004, color: 0xADD8E6 },
-            { name: "海王星", size: 7, distance: 216, speed: 0.0001, color: 0x4169E1 }
+            { name: "水星", size: 2, distance: 30, speed: 0.02, tex: '2k_mercury.jpg' },
+            { name: "金星", size: 3.5, distance: 45, speed: 0.015, tex: '2k_venus_surface.jpg', atm: '2k_venus_atmosphere.jpg' },
+            { name: "地球", size: 3.6, distance: 65, speed: 0.01, tex: '2k_earth_daymap.jpg', clouds: '2k_earth_clouds.jpg', night: '2k_earth_nightmap.jpg' },
+            { name: "火星", size: 2.5, distance: 85, speed: 0.008, tex: '2k_mars.jpg' },
+            { name: "木星", size: 10, distance: 130, speed: 0.004, tex: '2k_jupiter.jpg' },
+            { name: "土星", size: 8.5, distance: 180, speed: 0.003, tex: '2k_saturn.jpg', ring: '2k_saturn_ring_alpha.png' },
+            { name: "天王星", size: 6, distance: 230, speed: 0.002, tex: '2k_uranus.jpg' },
+            { name: "海王星", size: 5.8, distance: 270, speed: 0.001, tex: '2k_neptune.jpg' }
         ];
 
         const planets = [];
 
         function createPlanet(data) {
-            // 创建一个父容器对象，用于控制公转（把它放在太阳的位置）
-            const orbitContainer = new THREE.Object3D();
+            const orbitContainer = new THREE.Object3D(); // 公转容器
             scene.add(orbitContainer);
 
-            // 创建行星实体
-            const geometry = new THREE.SphereGeometry(data.size, 32, 32);
-            const material = new THREE.MeshStandardMaterial({ 
-                color: data.color,
-                roughness: 0.7,
-            });
-            const planet = new THREE.Mesh(geometry, material);
+            // 基础材质
+            const geometry = new THREE.SphereGeometry(data.size, 64, 64);
+            const dayTexture = textureLoader.load(texturePath + data.tex);
+            dayTexture.colorSpace = THREE.SRGBColorSpace; // 关键：修正贴图颜色空间
             
-            // 将行星偏移到指定的轨道半径处
+            let material;
+
+            // 特殊处理地球：日夜交替效果
+            // if (data.night) {
+            //     const nightTexture = textureLoader.load(texturePath + data.night);
+            //     nightTexture.colorSpace = THREE.SRGBColorSpace;
+            //     // 自定义 Shader 实现日夜平滑过渡
+            //     material = new THREE.ShaderMaterial({
+            //         uniforms: {
+            //             dayTexture: { value: dayTexture },
+            //             nightTexture: { value: nightTexture },
+            //             sunDirection: { value: new THREE.Vector3(1, 0, 0) }
+            //         },
+            //         vertexShader: `
+            //             varying vec2 vUv;
+            //             varying vec3 vNormal;
+            //             void main() {
+            //                 vUv = uv;
+            //                 vNormal = normalize(normalMatrix * normal);
+            //                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            //             }
+            //         `,
+            //         fragmentShader: `
+            //             uniform sampler2D dayTexture;
+            //             uniform sampler2D nightTexture;
+            //             uniform vec3 sunDirection;
+            //             varying vec2 vUv;
+            //             varying vec3 vNormal;
+            //             void main() {
+            //                 float intensity = dot(vNormal, sunDirection);
+            //                 vec3 dayColor = texture2D(dayTexture, vUv).rgb;
+            //                 vec3 nightColor = texture2D(nightTexture, vUv).rgb;
+            //                 // 根据光照强度混合日夜贴图
+            //                 float mixVal = smoothstep(-0.2, 0.2, intensity);
+            //                 gl_FragColor = vec4(mix(nightColor, dayColor, mixVal), 1.0);
+            //             }
+            //         `
+            //     });
+            // } else {
+            //     // 其他行星使用标准 Phong 材质
+            //     material = new THREE.MeshPhongMaterial({
+            //         map: dayTexture,
+            //         shininess: data.name === '地球' ? 20 : 5 // 地球稍微有点海洋反光
+            //     });
+            // }
+            material = new THREE.MeshPhongMaterial({
+                map: dayTexture,
+                shininess: data.name === '地球' ? 20 : 5
+            });
+
+            const planet = new THREE.Mesh(geometry, material);
             planet.position.x = data.distance;
             orbitContainer.add(planet);
 
-            // 绘制轨道线（视觉辅助）
-            const trackGeometry = new THREE.RingGeometry(data.distance - 0.2, data.distance + 0.2, 64);
-            const trackMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, opacity: 0.1, transparent: true });
-            const track = new THREE.Mesh(trackGeometry, trackMaterial);
-            track.rotation.x = Math.PI / 2;
-            scene.add(track);
+            // 地球专属：添加云层
+            if (data.clouds) {
+                const cloudGeo = new THREE.SphereGeometry(data.size + 0.05, 64, 64);
+                const cloudTex = textureLoader.load(texturePath + data.clouds);
+                cloudTex.colorSpace = THREE.SRGBColorSpace;
+                const cloudMat = new THREE.MeshPhongMaterial({
+                    map: cloudTex,
+                    transparent: true,
+                    opacity: 0.8,
+                    side: THREE.DoubleSide
+                });
+                const clouds = new THREE.Mesh(cloudGeo, cloudMat);
+                planet.add(clouds);
+                planet.userData.clouds = clouds; // 保存引用以便动画中独立旋转
+            }
 
-            // 如果是土星，加个环
-            if (data.hasRing) {
-                const ringGeo = new THREE.RingGeometry(data.size * 1.4, data.size * 2.2, 32);
-                const ringMat = new THREE.MeshBasicMaterial({ color: 0xAA8866, side: THREE.DoubleSide, opacity: 0.6, transparent: true });
+            // 土星专属：添加透明光环
+            if (data.ring) {
+                const ringGeo = new THREE.RingGeometry(data.size * 1.4, data.size * 2.2, 128);
+                const ringTex = textureLoader.load(texturePath + data.ring);
+                // 调整 UV 映射以适应环形贴图
+                const pos = ringGeo.attributes.position;
+                const v3 = new THREE.Vector3();
+                for (let i = 0; i < pos.count; i++){
+                    v3.fromBufferAttribute(pos, i);
+                    ringGeo.attributes.uv.setXY(i, v3.length() < (data.size * 1.8) ? 0 : 1, 1);
+                }
+                
+                const ringMat = new THREE.MeshBasicMaterial({
+                    map: ringTex,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.9
+                });
                 const ring = new THREE.Mesh(ringGeo, ringMat);
                 ring.rotation.x = Math.PI / 2;
                 planet.add(ring);
             }
 
-            return { mesh: planet, container: orbitContainer, speed: data.speed };
+            // 绘制轨道线
+            const track = new THREE.Mesh(
+                new THREE.RingGeometry(data.distance - 0.3, data.distance + 0.3, 128),
+                new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, opacity: 0.15, transparent: true })
+            );
+            track.rotation.x = Math.PI / 2;
+            scene.add(track);
+
+            return { mesh: planet, container: orbitContainer, speed: data.speed, name: data.name };
         }
 
         // 批量生成行星
-        planetsData.forEach(data => {
-            planets.push(createPlanet(data));
-        });
+        planetsData.forEach(data => planets.push(createPlanet(data)));
 
-        // 6. 动画循环
+        // --- 6. 动画循环 ---
         function animate() {
             requestAnimationFrame(animate);
 
-            // 太阳自转
-            sun.rotation.y += 0.004;
+            // 太阳缓慢自转
+            sun.rotation.y += 0.002;
 
             // 行星公转与自转
             planets.forEach(p => {
-                p.container.rotation.y += p.speed; // 绕太阳公转（旋转父容器）
-                p.mesh.rotation.y += 0.02;         // 行星自转
+                p.container.rotation.y += p.speed; // 绕太阳公转
+                p.mesh.rotation.y += 0.005;        // 行星自转
+                
+                // 如果该行星有云层，让云层比本体转得稍快一点，增加生动感
+                if (p.mesh.userData.clouds) {
+                    p.mesh.userData.clouds.rotation.y += 0.007;
+                }
             });
 
             controls.update();
