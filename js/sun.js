@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { createSphereGeo, loadColorTexture, TEXTURE_PATH } from './celestial.js';
 
 export function createSun(scene, textureLoader) {
-    const sunLight = new THREE.PointLight(0xffffff, 2.5, 0, 0);
+    // 太阳点光源 — 从原点向各方向照射
+    const sunLight = new THREE.PointLight(0xffffff, 10000, 0, 2);
     sunLight.position.set(0, 0, 0);
     scene.add(sunLight);
 

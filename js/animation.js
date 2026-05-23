@@ -67,7 +67,7 @@ export class AnimationController {
                 const sunPos = new THREE.Vector3(0, 0, 0);
                 const earthPos = this._vec3;
                 p.mesh.getWorldPosition(earthPos);
-                const dir = new THREE.Vector3().subVectors(sunPos, earthPos).normalize();
+                const dir = new THREE.Vector3().subVectors(earthPos, sunPos).normalize();
                 p.mesh.material.uniforms.sunDirection.value.copy(dir);
             }
         });

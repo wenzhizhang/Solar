@@ -11,7 +11,7 @@ export function initCore() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.5;
     renderer.domElement.style.position = 'fixed';
     renderer.domElement.style.top = '0';
     renderer.domElement.style.left = '0';
@@ -30,7 +30,8 @@ export function initCore() {
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    const ambientLight = new THREE.AmbientLight(0x445577, 0.8);
+    // 环境光 — 低强度，只保证背光面不全黑
+    const ambientLight = new THREE.AmbientLight(0x334466, 0.5);
     scene.add(ambientLight);
 
     return { scene, camera, renderer, controls };

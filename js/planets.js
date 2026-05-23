@@ -56,13 +56,14 @@ export function createPlanets(scene, textureLoader) {
                     varying vec2 vUv;
                     varying vec3 vNormal;
                     void main() {
-                        float intensity = dot(normalize(vNormal), normalize(sunDirection));
-                        vec3 dayColor = texture2D(dayTexture, vUv).rgb;
-                        vec3 nightColor = texture2D(nightTexture, vUv).rgb;
-                        float mixVal = smoothstep(-0.15, 0.25, intensity);
+                        // float intensity = dot(normalize(vNormal), normalize(sunDirection));
+                        float intensity = dot(normalize(vNormal), -normalize(sunDirection));
+                        vec3 dayColor = texture2D(dayTexture, vUv).rgb * 1.6;
+                        vec3 nightColor = texture2D(nightTexture, vUv).rgb * 3.0;
+                        float mixVal = smoothstep(-0.1, 0.2, intensity);
                         vec3 color = mix(nightColor, dayColor, mixVal);
                         float rim = 1.0 - abs(intensity);
-                        color += vec3(0.2, 0.4, 1.0) * pow(rim, 4.0) * 0.3;
+                        color += vec3(0.2, 0.4, 1.0) * pow(rim, 4.0) * 0.4;
                         gl_FragColor = vec4(color, 1.0);
                     }
                 `,
