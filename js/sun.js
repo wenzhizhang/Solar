@@ -7,7 +7,7 @@ export function createSun(scene, textureLoader) {
     scene.add(sunLight);
 
     const geo = createSphereGeo(16);
-    const tex = loadColorTexture(textureLoader, TEXTURE_PATH + '8k_sun.jpg');
+    const tex = loadColorTexture(textureLoader, TEXTURE_PATH + '2k_sun.jpg');
     const mat = new THREE.MeshBasicMaterial({ map: tex });
     const sun = new THREE.Mesh(geo, mat);
     scene.add(sun);

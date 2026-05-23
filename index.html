@@ -57,6 +57,9 @@
     </script>
 
     <script type="module">
+    // 诊断工具（F12 Console 运行 solarDiag()）
+    import('./js/diag.js').catch(() => {});
+
     try {
         await import('./js/main.js');
         document.querySelector('#loading .hint').textContent = '正在加载纹理 ...';

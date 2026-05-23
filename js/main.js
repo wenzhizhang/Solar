@@ -18,7 +18,7 @@ const textureLoader = createTextureLoader(loadingManager);
 const { scene, camera, renderer, controls } = initCore();
 
 // 星空背景（必须设置，否则场景全黑）
-const bgTex = textureLoader.load(TEXTURE_PATH + '8k_stars_milky_way.jpg');
+const bgTex = textureLoader.load(TEXTURE_PATH + '2k_stars_milky_way.jpg');
 scene.background = bgTex;
 
 // 创建天体
@@ -42,7 +42,10 @@ const { labelRenderer } = initUI(scene, camera, renderer, controls, planets, ani
 // 纹理加载进度
 loadingManager.onProgress = (url, loaded, total) => {
     const hint = document.querySelector('#loading .hint');
-    if (hint) hint.textContent = '加载纹理 ' + loaded + '/' + total;
+    if (hint) {
+        const pct = Math.round(loaded / total * 100);
+        hint.textContent = '加载纹理 ' + pct + '% (' + loaded + '/' + total + ')';
+    }
 };
 
 // 纹理加载完成
@@ -58,13 +61,19 @@ loadingManager.onError = (url) => {
     if (hint) hint.textContent = '部分纹理加载失败';
 };
 
-// 超时回退：5秒后强制隐藏 loading
+// 超时回退：15秒后强制显示错误（正常情况下纹理 <3s 加载完）
 setTimeout(() => {
     const el = document.getElementById('loading');
     if (el && !el.classList.contains('hidden')) {
-        el.classList.add('hidden');
+        el.className = 'error';
+        el.innerHTML =
+            '<div style="font-size:36px;margin-bottom:8px;">⏳</div>' +
+            '加载超时' +
+            '<div class="hint" style="opacity:0.7;">' +
+            '打开 F12 → Console 看错误详情，或运行 solarDiag()' +
+            '</div>';
     }
-}, 5000);
+}, 15000);
 
 // 主动画循环
 function animate() {

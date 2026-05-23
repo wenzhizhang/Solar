@@ -6,7 +6,7 @@ export function createMoon(textureLoader, earthMesh) {
     earthMesh.add(moonContainer);
 
     const geo = createSphereGeo(1.2);
-    const tex = loadColorTexture(textureLoader, TEXTURE_PATH + '8k_moon.jpg');
+    const tex = loadColorTexture(textureLoader, TEXTURE_PATH + '2k_moon.jpg');
     const mat = new THREE.MeshPhongMaterial({ map: tex, shininess: 2 });
     const moon = new THREE.Mesh(geo, mat);
     moon.position.x = 10;

@@ -2,12 +2,12 @@ import * as THREE from 'three';
 import { createSphereGeo, loadColorTexture, TEXTURE_PATH } from './celestial.js';
 
 export const PLANETS_DATA = [
-    { name: '水星', nameEn: 'Mercury', size: 2, distance: 30, speed: 0.02, rotSpeed: 0.003, tex: '8k_mercury.jpg', info: { diameter: '4,879 km', dayLength: '58.6 天' } },
-    { name: '金星', nameEn: 'Venus', size: 3.5, distance: 45, speed: 0.015, rotSpeed: -0.002, tex: '8k_venus_surface.jpg', atmTex: '4k_venus_atmosphere.jpg', info: { diameter: '12,104 km', dayLength: '243 天' } },
-    { name: '地球', nameEn: 'Earth', size: 3.6, distance: 65, speed: 0.01, rotSpeed: 0.02, tex: '8k_earth_daymap.jpg', cloudsTex: '8k_earth_clouds.jpg', nightTex: '8k_earth_nightmap.jpg', info: { diameter: '12,756 km', dayLength: '24 小时' } },
-    { name: '火星', nameEn: 'Mars', size: 2.5, distance: 85, speed: 0.008, rotSpeed: 0.019, tex: '8k_mars.jpg', info: { diameter: '6,792 km', dayLength: '24.6 小时' } },
-    { name: '木星', nameEn: 'Jupiter', size: 10, distance: 130, speed: 0.004, rotSpeed: 0.04, tex: '8k_jupiter.jpg', info: { diameter: '142,984 km', dayLength: '9.9 小时' } },
-    { name: '土星', nameEn: 'Saturn', size: 8.5, distance: 180, speed: 0.003, rotSpeed: 0.038, tex: '8k_saturn.jpg', ringTex: '8k_saturn_ring_alpha.png', info: { diameter: '120,536 km', dayLength: '10.7 小时' } },
+    { name: '水星', nameEn: 'Mercury', size: 2, distance: 30, speed: 0.02, rotSpeed: 0.003, tex: '2k_mercury.jpg', info: { diameter: '4,879 km', dayLength: '58.6 天' } },
+    { name: '金星', nameEn: 'Venus', size: 3.5, distance: 45, speed: 0.015, rotSpeed: -0.002, tex: '2k_venus_surface.jpg', atmTex: '2k_venus_atmosphere.jpg', info: { diameter: '12,104 km', dayLength: '243 天' } },
+    { name: '地球', nameEn: 'Earth', size: 3.6, distance: 65, speed: 0.01, rotSpeed: 0.02, tex: '2k_earth_daymap.jpg', cloudsTex: '2k_earth_clouds.jpg', nightTex: '2k_earth_nightmap.jpg', info: { diameter: '12,756 km', dayLength: '24 小时' } },
+    { name: '火星', nameEn: 'Mars', size: 2.5, distance: 85, speed: 0.008, rotSpeed: 0.019, tex: '2k_mars.jpg', info: { diameter: '6,792 km', dayLength: '24.6 小时' } },
+    { name: '木星', nameEn: 'Jupiter', size: 10, distance: 130, speed: 0.004, rotSpeed: 0.04, tex: '2k_jupiter.jpg', info: { diameter: '142,984 km', dayLength: '9.9 小时' } },
+    { name: '土星', nameEn: 'Saturn', size: 8.5, distance: 180, speed: 0.003, rotSpeed: 0.038, tex: '2k_saturn.jpg', ringTex: '2k_saturn_ring_alpha.png', info: { diameter: '120,536 km', dayLength: '10.7 小时' } },
     { name: '天王星', nameEn: 'Uranus', size: 6, distance: 230, speed: 0.002, rotSpeed: -0.03, tex: '2k_uranus.jpg', info: { diameter: '51,118 km', dayLength: '17.2 小时' } },
     { name: '海王星', nameEn: 'Neptune', size: 5.8, distance: 270, speed: 0.001, rotSpeed: 0.032, tex: '2k_neptune.jpg', info: { diameter: '49,528 km', dayLength: '16.1 小时' } },
 ];
