@@ -20,8 +20,8 @@ export function initCore() {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
-    controls.minDistance = 30;
-    controls.maxDistance = 1500;
+    controls.minDistance = 0.5;
+    controls.maxDistance = Infinity;
     controls.target.set(0, 0, 0);
 
     window.addEventListener('resize', () => {
@@ -30,8 +30,8 @@ export function initCore() {
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // 环境光 — 低强度，只保证背光面不全黑
-    const ambientLight = new THREE.AmbientLight(0x334466, 0.5);
+    // 环境光 — 保证外层行星可见（距太阳远，点光源衰减后几乎无光）
+    const ambientLight = new THREE.AmbientLight(0x5577aa, 1.2);
     scene.add(ambientLight);
 
     return { scene, camera, renderer, controls };

@@ -5,7 +5,6 @@ import { createSun } from './sun.js';
 import { createPlanets } from './planets.js';
 import { createMoon } from './moon.js';
 import { createAsteroidBelt } from './asteroid-belt.js';
-import { createOrbits } from './orbits.js';
 import { createStars } from './stars.js';
 import { AnimationController } from './animation.js';
 import { initUI } from './ui.js';
@@ -26,7 +25,6 @@ const sun = createSun(scene, textureLoader);
 const { planets, earthMesh } = createPlanets(scene, textureLoader);
 const moonData = createMoon(textureLoader, earthMesh);
 const asteroidBelt = createAsteroidBelt(scene);
-createOrbits(scene);
 createStars(scene);
 
 // 动画控制
@@ -36,8 +34,22 @@ animCtrl.addPlanets(planets);
 animCtrl.addMoon(moonData);
 animCtrl.addAsteroidBelt(asteroidBelt);
 
+// 聚焦状态：点击行星后相机跟随其轨道
+let focusedPlanet = null;
+
 // UI
-const { labelRenderer } = initUI(scene, camera, renderer, controls, planets, animCtrl);
+const { labelRenderer } = initUI(scene, camera, renderer, controls, planets, animCtrl, (planet) => {
+    focusedPlanet = planet;
+    if (planet) {
+        // 将镜头拉近到行星附近
+        const pos = planet.mesh.position;
+        const size = planet.data.size || 5;
+        const dist = size * 5 + 10;
+        camera.position.set(pos.x + dist, pos.y + dist * 0.3, pos.z + dist);
+        controls.target.copy(pos);
+        controls.update();
+    }
+});
 
 // 纹理加载进度
 loadingManager.onProgress = (url, loaded, total) => {
@@ -75,13 +87,33 @@ setTimeout(() => {
     }
 }, 15000);
 
+// 预渲染第一帧（确保即使动画崩溃也能看到初始状态）
+try {
+    renderer.render(scene, camera);
+} catch (e) {
+    console.warn('[渲染] 预渲染失败:', e);
+}
+
 // 主动画循环
 function animate() {
     requestAnimationFrame(animate);
-    animCtrl.update();
+    try {
+        animCtrl.update();
+        // 跟踪聚焦行星的轨道运动
+        if (focusedPlanet) {
+            const p = focusedPlanet.mesh.position;
+            controls.target.lerp(p, 0.05);
+        }
+    } catch (e) {
+        console.error('[动画] update 出错:', e);
+    }
     controls.update();
-    renderer.render(scene, camera);
-    labelRenderer.render(scene, camera);
+    try {
+        renderer.render(scene, camera);
+        labelRenderer.render(scene, camera);
+    } catch (e) {
+        console.warn('[渲染] 渲染出错:', e);
+    }
 }
 
 animate();

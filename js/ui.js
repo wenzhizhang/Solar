@@ -5,7 +5,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
  * 初始化所有 UI 元素
  * @returns {{ labelRenderer: CSS2DRenderer, showInfo: Function }}
  */
-export function initUI(scene, camera, renderer, controls, planets, animationCtrl) {
+export function initUI(scene, camera, renderer, controls, planets, animationCtrl, onFocusPlanet) {
     // ===== CSS2D 标签渲染器 =====
     const labelRenderer = new CSS2DRenderer();
     labelRenderer.setSize(window.innerWidth, window.innerHeight);
@@ -163,7 +163,7 @@ export function initUI(scene, camera, renderer, controls, planets, animationCtrl
             <div style="opacity:0.5;font-size:12px;margin-bottom:6px;">${data.nameEn}</div>
             <div style="display:flex;gap:16px;justify-content:center;opacity:0.8;">
                 <span>直径 ${info.diameter || '—'}</span>
-                <span>距太阳 ${data.distance} AU</span>
+                <span>距太阳 ${data.a || '—'} AU</span>
                 <span>自转 ${info.dayLength || '—'}</span>
             </div>
         `;
@@ -183,17 +183,26 @@ export function initUI(scene, camera, renderer, controls, planets, animationCtrl
         raycaster.setFromCamera(pointer, camera);
 
         const meshes = planets.map((p) => p.mesh);
-        const intersects = raycaster.intersectObjects(meshes);
+        // recursive=true 检测子物体（云层/大气层），然后向上追溯找到行星
+        const intersects = raycaster.intersectObjects(meshes, true);
 
         if (intersects.length > 0) {
-            const hit = intersects[0].object;
-            const planet = planets.find((p) => p.mesh === hit);
+            let hit = intersects[0].object;
+            // 沿父级链查找对应的行星
+            let planet = null;
+            while (hit) {
+                planet = planets.find((p) => p.mesh === hit);
+                if (planet) break;
+                hit = hit.parent;
+            }
             if (planet) {
                 showInfo(planet.data);
+                onFocusPlanet?.(planet);
                 return;
             }
         }
         showInfo(null);
+        onFocusPlanet?.(null);
     });
 
     // 窗口自适应
