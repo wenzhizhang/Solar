@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { t, planetName, translateDayLength, toggleLang } from './i18n.js';
 
 /**
  * 初始化所有 UI 元素
@@ -17,9 +18,9 @@ export function initUI(scene, camera, renderer, controls, planets, animationCtrl
     document.body.appendChild(labelRenderer.domElement);
 
     // ===== 行星名称标签 =====
+    const labelDivs = [];
     planets.forEach((p) => {
         const div = document.createElement('div');
-        div.textContent = p.name;
         div.style.color = '#fff';
         div.style.fontSize = '13px';
         div.style.fontWeight = '600';
@@ -34,6 +35,8 @@ export function initUI(scene, camera, renderer, controls, planets, animationCtrl
         const label = new CSS2DObject(div);
         label.position.set(0, p.data.size + 2, 0);
         p.mesh.add(label);
+
+        labelDivs.push({ div, label, planet: p });
     });
 
     // ===== 右上方控制面板 =====
@@ -66,7 +69,6 @@ export function initUI(scene, camera, renderer, controls, planets, animationCtrl
     });
 
     const speedLabel = document.createElement('span');
-    speedLabel.textContent = '速度';
     speedLabel.style.fontSize = '13px';
     speedLabel.style.opacity = '0.7';
 
@@ -107,22 +109,39 @@ export function initUI(scene, camera, renderer, controls, planets, animationCtrl
     Object.assign(btnRow.style, { display: 'flex', gap: '8px' });
 
     const pauseBtn = document.createElement('button');
-    pauseBtn.textContent = '⏸ 暂停';
+    let paused = false;
     pauseBtn.style.cssText = btnBaseStyle();
     pauseBtn.addEventListener('click', () => {
-        const paused = animationCtrl.togglePause();
-        pauseBtn.textContent = paused ? '▶ 继续' : '⏸ 暂停';
+        paused = animationCtrl.togglePause();
+        pauseBtn.textContent = paused ? t('resume') : t('pause');
     });
 
     const resetBtn = document.createElement('button');
-    resetBtn.textContent = '⟲ 重置';
     resetBtn.style.cssText = btnBaseStyle();
     resetBtn.addEventListener('click', () => {
         animationCtrl.resetView(camera, controls);
     });
 
+    const langBtn = document.createElement('button');
+    langBtn.style.cssText = btnBaseStyle();
+    langBtn.addEventListener('click', () => {
+        toggleLang();
+        refreshLang();
+    });
+
+    let labelsVisible = true;
+    const labelToggleBtn = document.createElement('button');
+    labelToggleBtn.style.cssText = btnBaseStyle();
+    labelToggleBtn.addEventListener('click', () => {
+        labelsVisible = !labelsVisible;
+        labelDivs.forEach(({ label }) => { label.visible = labelsVisible; });
+        labelToggleBtn.textContent = labelsVisible ? t('hideLabels') : t('showLabels');
+    });
+
     btnRow.appendChild(pauseBtn);
     btnRow.appendChild(resetBtn);
+    btnRow.appendChild(labelToggleBtn);
+    btnRow.appendChild(langBtn);
     panel.appendChild(speedRow);
     panel.appendChild(btnRow);
     document.body.appendChild(panel);
@@ -152,23 +171,49 @@ export function initUI(scene, camera, renderer, controls, planets, animationCtrl
     });
     document.body.appendChild(infoPanel);
 
+    let currentPlanetData = null;
+
     function showInfo(data) {
+        currentPlanetData = data;
         if (!data) {
             infoPanel.style.opacity = '0';
             return;
         }
         const info = data.info || {};
+        const primaryName = planetName({ name: data.name, nameEn: data.nameEn });
+        const secondaryName = primaryName === data.name ? data.nameEn : data.name;
         infoPanel.innerHTML = `
-            <div style="font-size:18px;font-weight:bold;margin-bottom:2px;">${data.name}</div>
-            <div style="opacity:0.5;font-size:12px;margin-bottom:6px;">${data.nameEn}</div>
+            <div style="font-size:18px;font-weight:bold;margin-bottom:2px;">${primaryName}</div>
+            <div style="opacity:0.5;font-size:12px;margin-bottom:6px;">${secondaryName}</div>
             <div style="display:flex;gap:16px;justify-content:center;opacity:0.8;">
-                <span>直径 ${info.diameter || '—'}</span>
-                <span>距太阳 ${data.a || '—'} AU</span>
-                <span>自转 ${info.dayLength || '—'}</span>
+                <span>${t('diameter')} ${info.diameter || '—'}</span>
+                <span>${t('distance')} ${data.a || '—'} AU</span>
+                <span>${t('rotation')} ${translateDayLength(info.dayLength) || '—'}</span>
             </div>
         `;
         infoPanel.style.opacity = '1';
     }
+
+    // ===== 语言切换刷新 =====
+    function refreshLang() {
+        // 更新行星标签
+        labelDivs.forEach(({ div, planet }) => {
+            div.textContent = planetName({ name: planet.name, nameEn: planet.data.nameEn });
+        });
+
+        // 更新控制面板
+        speedLabel.textContent = t('speed');
+        pauseBtn.textContent = paused ? t('resume') : t('pause');
+        resetBtn.textContent = t('reset');
+        langBtn.textContent = t('langBtn');
+        labelToggleBtn.textContent = labelsVisible ? t('hideLabels') : t('showLabels');
+
+        // 更新信息面板
+        showInfo(currentPlanetData);
+    }
+
+    // 初始化文字
+    refreshLang();
 
     // ===== 点击交互（Raycaster）=====
     const raycaster = new THREE.Raycaster();
@@ -183,12 +228,10 @@ export function initUI(scene, camera, renderer, controls, planets, animationCtrl
         raycaster.setFromCamera(pointer, camera);
 
         const meshes = planets.map((p) => p.mesh);
-        // recursive=true 检测子物体（云层/大气层），然后向上追溯找到行星
         const intersects = raycaster.intersectObjects(meshes, true);
 
         if (intersects.length > 0) {
             let hit = intersects[0].object;
-            // 沿父级链查找对应的行星
             let planet = null;
             while (hit) {
                 planet = planets.find((p) => p.mesh === hit);

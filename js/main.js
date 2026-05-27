@@ -8,6 +8,13 @@ import { createAsteroidBelt } from './asteroid-belt.js';
 import { createStars } from './stars.js';
 import { AnimationController } from './animation.js';
 import { initUI } from './ui.js';
+import { t } from './i18n.js';
+
+// 更新初始 loading 文字
+const loadingSpan = document.querySelector('#loading span');
+if (loadingSpan) loadingSpan.textContent = t('loading');
+const loadingHint = document.querySelector('#loading .hint');
+if (loadingHint) loadingHint.textContent = t('loadingJs');
 
 // 纹理加载管理器（追踪所有纹理加载）
 const loadingManager = new THREE.LoadingManager();
@@ -56,7 +63,7 @@ loadingManager.onProgress = (url, loaded, total) => {
     const hint = document.querySelector('#loading .hint');
     if (hint) {
         const pct = Math.round(loaded / total * 100);
-        hint.textContent = '加载纹理 ' + pct + '% (' + loaded + '/' + total + ')';
+        hint.textContent = t('loadingTex') + ' ' + pct + '% (' + loaded + '/' + total + ')';
     }
 };
 
@@ -70,7 +77,7 @@ loadingManager.onLoad = () => {
 loadingManager.onError = (url) => {
     console.warn('[纹理] 加载失败:', url);
     const hint = document.querySelector('#loading .hint');
-    if (hint) hint.textContent = '部分纹理加载失败';
+    if (hint) hint.textContent = t('textureFail');
 };
 
 // 超时回退：15秒后强制显示错误（正常情况下纹理 <3s 加载完）
@@ -80,9 +87,9 @@ setTimeout(() => {
         el.className = 'error';
         el.innerHTML =
             '<div style="font-size:36px;margin-bottom:8px;">⏳</div>' +
-            '加载超时' +
+            t('loadingTimeout') +
             '<div class="hint" style="opacity:0.7;">' +
-            '打开 F12 → Console 看错误详情，或运行 solarDiag()' +
+            t('loadingHint') +
             '</div>';
     }
 }, 15000);
