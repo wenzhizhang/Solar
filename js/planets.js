@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { createSphereGeo, loadColorTexture, TEXTURE_PATH } from './celestial.js';
 
 // 真实天文参数：a(半长轴/AU), e(偏心率), period(公转周期/年)
-// 为了视觉效果，设定 1 AU = 50 个场景单位
-const AU_SCALE = 50; 
+// 为了视觉效果，设定 1 AU = N 个场景单位
+// AU_SCALE 影响行星轨道半径，值越大轨道离太阳越远
+const AU_SCALE = 80; 
 
 export const PLANETS_DATA = [
     { name: '水星', nameEn: 'Mercury', size: 2, a: 0.387, e: 0.206, period: 0.241, rotSpeed: 0.003, tex: '2k_mercury.jpg',  color: 0x8c8c8c, info: { diameter: '4,879 km', dayLength: '58.6 天' } },

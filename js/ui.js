@@ -55,7 +55,7 @@ export function initUI(scene, camera, renderer, controls, planets, animationCtrl
         padding: '16px 20px',
         color: 'rgba(255,255,255,0.85)',
         fontSize: '14px',
-        minWidth: '170px',
+        minWidth: '340px',
         userSelect: 'none',
     });
 
@@ -266,6 +266,7 @@ function btnBaseStyle() {
         'color:rgba(255,255,255,0.8)',
         'font-size:12px',
         'cursor:pointer',
+        'white-space:nowrap',
         'transition:background 0.15s',
     ].join(';');
 }

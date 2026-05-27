@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 export function createAsteroidBelt(scene) {
     const count = 3000;
-    const innerRadius = 105;
-    const outerRadius = 120;
+    const innerRadius = 168;
+    const outerRadius = 192;
     const heightRange = 5;
 
     const positions = new Float32Array(count * 3);
